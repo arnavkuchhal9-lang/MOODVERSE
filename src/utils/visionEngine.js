@@ -1,5 +1,5 @@
 // Moodverse Computer Vision & Emotional Facial Biometrics Engine
-
+//VisionEngine.js
 export const MOOD_DEFINITIONS = {
   joy: {
     id: 'joy',
@@ -232,7 +232,6 @@ export class VisionBiometricsAnalyzer {
       }
     });
 
-    const confidence = Math.min(96, Math.max(70, Math.round((maxScore / totalScoreSum) * 165)));
     const dominantMood = MOOD_DEFINITIONS[bestKey];
 
     // Compute dynamic Valence (-100 to +100) & Arousal (0 to 100%)
@@ -245,8 +244,6 @@ export class VisionBiometricsAnalyzer {
       motionScore * 0.6 + (warmthRatio - 1.0) * 40 + (scores.overwhelm + scores.joy) * 0.3
     )));
 
-    const heartRateEst = Math.round(62 + (arousal * 0.32) + (motionScore * 0.15));
-
     return {
       faceDetected,
       dominantMood,
@@ -254,7 +251,6 @@ export class VisionBiometricsAnalyzer {
       valence: Math.max(-100, Math.min(100, valence)),
       arousal,
       calmnessIndex: Math.max(5, 100 - arousal),
-      heartRateEst,
       motionScore,
       scores,
       timestamp: Date.now(),

@@ -1,18 +1,18 @@
+//MoodMirror.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, CameraOff, Sparkles, Heart, Activity, Sliders, RefreshCw, CheckCircle, ArrowRight, Upload, HelpCircle, ShieldAlert, Cpu, Zap } from 'lucide-react';
+import { Camera, CameraOff, Sparkles, Activity, Sliders, RefreshCw, CheckCircle, ArrowRight, Upload, HelpCircle, ShieldAlert, Cpu, Zap } from 'lucide-react';
 import { VisionBiometricsAnalyzer, MOOD_DEFINITIONS, checkDLBackendStatus, predictEmotionWithDLBackend } from '../utils/visionEngine';
 import { VISUAL_METAPHORS } from '../utils/storage';
 
 export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
   const [cameraActive, setCameraActive] = useState(false);
+  const [scanStatus, setScanStatus] = useState('Waiting for camera');
   const [cameraError, setCameraError] = useState(null);
   const [biometrics, setBiometrics] = useState({
     dominantMood: MOOD_DEFINITIONS.serenity,
-    confidence: 85,
     valence: 65,
     arousal: 30,
     calmnessIndex: 78,
-    heartRateEst: 68,
     motionScore: 12,
     scores: { joy: 15, serenity: 60, melancholy: 10, overwhelm: 5, focus: 20, fatigue: 10 }
   });
@@ -61,10 +61,6 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
       const matched = VISUAL_METAPHORS.find(m => m.defaultMood === moodId) || VISUAL_METAPHORS[0];
       setMatchedVisual(matched);
 
-      // Auto-trigger rescue check if extreme distress is detected
-      if (moodId === 'overwhelm' && biometrics.confidence > 75) {
-        // Suggested rescue opportunity
-      }
     }
   }, [biometrics?.dominantMood?.id]);
 
@@ -72,6 +68,7 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
   const startCamera = async () => {
     setCameraError(null);
     try {
+      setScanStatus('Initializing camera...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
@@ -86,6 +83,7 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play();
           setCameraActive(true);
+          setScanStatus('Analyzing visual patterns...');
           startAnalysisLoop();
         };
       }
@@ -93,6 +91,7 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
       console.warn("Camera access failed or unavailable, fallback active", err);
       setCameraError("Camera unavailable or permission denied. You can still test with simulated face expressions or uploaded photos below!");
       setScanMode('sample');
+      setScanStatus('Camera unavailable');
     }
   };
 
@@ -105,6 +104,7 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
       videoRef.current.srcObject = null;
     }
     setCameraActive(false);
+    setScanStatus('Waiting for camera');
   };
 
   const startAnalysisLoop = () => {
@@ -112,6 +112,9 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
       if (videoRef.current && videoRef.current.readyState >= 2 && analyzerRef.current) {
         const result = analyzerRef.current.analyzeFrame(videoRef.current);
         if (result) {
+          setScanStatus(prev =>
+            prev === 'Calculating...' ? prev : 'Calculating...'
+          );
           setBiometrics(prev => ({
             ...result,
             // smooth values
@@ -137,11 +140,9 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
                 setBiometrics(prev => ({
                   ...prev,
                   dominantMood: dlResult.dominantMood,
-                  confidence: Math.round(dlResult.confidence),
                   valence: dlResult.valence,
                   arousal: dlResult.arousal,
                   calmnessIndex: dlResult.calmnessIndex,
-                  heartRateEst: dlResult.heartRateEst,
                   engine: 'TensorFlow Deep FER CNN'
                 }));
               }
@@ -229,11 +230,9 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
     const mood = MOOD_DEFINITIONS[presetKey];
     setBiometrics({
       dominantMood: mood,
-      confidence: Math.floor(82 + Math.random() * 12),
       valence: mood.valence,
       arousal: mood.arousal,
       calmnessIndex: Math.max(10, 100 - mood.arousal),
-      heartRateEst: Math.round(65 + mood.arousal * 0.25),
       motionScore: Math.round(mood.arousal * 0.3),
       scores: {
         joy: presetKey === 'joy' ? 80 : 15,
@@ -303,7 +302,7 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
         </h1>
         <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
           Moodverse gazes beyond superficial words. Open your camera to let our neural biometrics interpret your 
-          facial aura, micro-expressions, and heart resonance — translating raw emotion into living visual art.
+          facial patterns and visual expressions — translating raw emotion into living visual art.
         </p>
       </div>
 
@@ -330,7 +329,19 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
               height={480}
               className={`absolute inset-0 w-full h-full pointer-events-none ${cameraActive ? 'block' : 'hidden'}`}
             />
+              {/* Camera Calculation Status */}
+              {cameraActive && (
+                <div className="absolute top-4 left-4 z-30 px-4 py-2 rounded-full
+                  bg-space-950/90 backdrop-blur-md border border-purple-400/30
+                  text-xs text-white flex items-center gap-2">
 
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+
+                  <span className="font-semibold text-purple-300">
+                    {scanStatus}
+                  </span>
+                </div>
+              )}
             {/* Fallback View when Camera is Inactive */}
             {!cameraActive && (
               <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-5">
@@ -369,24 +380,6 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
               </div>
             )}
 
-            {/* Active Camera Live HUD Badge */}
-            {cameraActive && (
-              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-space-950/80 backdrop-blur-md border border-white/10 text-xs text-white">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-semibold">AI Scan Live</span>
-                <span className="text-slate-400">·</span>
-                <span className="text-purple-300">{biometrics.confidence}% Match</span>
-                {dlBackendInfo && (
-                  <>
-                    <span className="text-slate-500">|</span>
-                    <span className="text-emerald-300 font-bold flex items-center gap-1">
-                      <Cpu className="w-3 h-3 text-emerald-400" /> TensorFlow DL
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Stop Camera Button when active */}
             {cameraActive && (
               <button
@@ -408,7 +401,6 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
                 <div>
                   <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                     <span>{biometrics.dominantMood.name}</span>
-                    <span className="text-[10px] text-slate-400">({biometrics.confidence}% conf)</span>
                   </div>
                   <div className="text-[11px] text-slate-400 truncate max-w-[240px] sm:max-w-xs">
                     {biometrics.dominantMood.tagline}
@@ -416,11 +408,6 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-xs">
-                <div className="hidden sm:flex items-center gap-1 text-slate-300">
-                  <Heart className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                  <span>{biometrics.heartRateEst} BPM</span>
-                </div>
                 <div className="flex items-center gap-1 text-slate-300">
                   <Activity className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{biometrics.calmnessIndex}% Calm</span>
@@ -591,6 +578,5 @@ export default function MoodMirror({ onSaveMood, onTriggerRescue }) {
 
       </div>
 
-    </div>
   );
 }

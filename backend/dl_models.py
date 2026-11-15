@@ -200,7 +200,6 @@ class FacialEmotionDeepCNN:
         # Dominant emotion
         dominant_idx = int(np.argmax(final_probs))
         dominant_key = EMOTION_CLASSES[dominant_idx]
-        confidence = float(np.round(final_probs[dominant_idx] * 100, 1))
 
         # Valence & Arousal computation
         valence_weights = np.array([85, 70, -50, -70, 55, -30])
@@ -208,7 +207,6 @@ class FacialEmotionDeepCNN:
         valence = int(np.clip(np.sum(final_probs * valence_weights), -100, 100))
         arousal = int(np.clip(np.sum(final_probs * arousal_weights), 5, 100))
         calmness = int(np.clip(100 - arousal + (valence * 0.2), 5, 98))
-        est_heart_rate = int(62 + (arousal * 0.30))
 
         prob_dict = {EMOTION_CLASSES[i]: float(np.round(final_probs[i] * 100, 1)) for i in range(len(EMOTION_CLASSES))}
 
@@ -220,7 +218,6 @@ class FacialEmotionDeepCNN:
             "valence": valence,
             "arousal": arousal,
             "calmnessIndex": calmness,
-            "heartRateEst": est_heart_rate,
             "probabilities": prob_dict,
             "engine": "TensorFlow Deep FER CNN"
         }

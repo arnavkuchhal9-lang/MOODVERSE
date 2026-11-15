@@ -1,3 +1,4 @@
+//App.jsx
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import InstantMoodScanner from './components/InstantMoodScanner';
@@ -20,7 +21,8 @@ import {
   markCapsuleUnlocked,
   getStoredLexicon,
   updateLexiconItem,
-  predictDifficultDays
+  predictDifficultDays,
+  resetMoodverseData
 } from './utils/storage';
 import { Sparkles, Heart, RefreshCw, ShieldAlert, Download, Gamepad2 } from 'lucide-react';
 
@@ -75,13 +77,16 @@ export default function App() {
 
   // Reset to initial demo data
   const handleResetDemoData = () => {
-    if (window.confirm("Reset Moodverse with realistic 14-day sample history and preloaded rescue notes?")) {
-      localStorage.clear();
-      setEntries(getStoredEntries());
-      setCapsules(getStoredCapsules());
-      setLexicon(getStoredLexicon());
-    }
+    const confirmed = window.confirm(
+      "Reset Moodverse sample data? This will remove your current Moodverse memories and restore the demo data."
+    );
+    if (!confirmed) return;
+    const resetData = resetMoodverseData();
+    setEntries(resetData.entries);
+    setCapsules(resetData.capsules);
+    setLexicon(resetData.lexicon);
   };
+
 
   // Export data as JSON
   const handleExportJSON = () => {
