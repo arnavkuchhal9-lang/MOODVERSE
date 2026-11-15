@@ -1,3 +1,4 @@
+//VisualLogger.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon, Sliders, Sparkles, Wand2, Upload, CheckCircle, Palette, Flame, Wind, Droplets } from 'lucide-react';
 import { VISUAL_METAPHORS, getStoredLexicon } from '../utils/storage';
@@ -50,7 +51,8 @@ export default function VisualLogger({ onSaveMood }) {
 
         ctx.strokeStyle = `hsla(${(genHue + (i * 2)) % 360}, 80%, ${Math.min(90, genLuminance + 20)}%, ${0.2 + (genTurbulence / 150)})`;
         ctx.beginPath();
-        ctx.arc(cx, cy, 5 + (genTurbulence * 0.3 * Math.sin(i)), 0, Math.PI * 2);
+        const particleRadius = Math.max(  1,  5 + (genTurbulence * 0.3 * Math.sin(i)));
+        ctx.arc(cx, cy, particleRadius, 0, Math.PI * 2);
         ctx.stroke();
 
         // Connecting threads

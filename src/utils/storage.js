@@ -1,5 +1,5 @@
 // Moodverse Persistent Storage, Seed Data & Predictive Forecaster
-
+//storage.js
 export const VISUAL_METAPHORS = [
   {
     id: 'cosmic_nebula',
@@ -86,38 +86,42 @@ export const VISUAL_METAPHORS = [
 export const INITIAL_LEXICON = [
   {
     id: 'rain',
+    isSample: true,
     metaphor: 'Rain & Overcast Skies',
     primaryMeaning: 'Deep Introspection & Peaceful Solitude',
     learnedAffinity: { serenity: 60, melancholy: 30, overwhelm: 10 },
     confidence: 88,
-    sampleCount: 14,
+    sampleCount: 14, 
     notes: 'Unlike traditional trackers that equate rain with depression, your visual language links gentle rain to deep focused reading and grounding.'
   },
   {
     id: 'fire',
+    isSample: true,
     metaphor: 'Flames & Glowing Embers',
     primaryMeaning: 'Urgent Creative Drive or Impending Fatigue',
     learnedAffinity: { focus: 45, fatigue: 35, overwhelm: 20 },
     confidence: 82,
-    sampleCount: 11,
+    sampleCount: 11, 
     notes: 'Bright flames signal high creative flow, while dying embers consistently predict evening burnout.'
   },
   {
     id: 'ocean',
+    isSample: true,
     metaphor: 'Deep Ocean Waters',
     primaryMeaning: 'Emotional Scale & Processing Depth',
     learnedAffinity: { overwhelm: 50, serenity: 40, melancholy: 10 },
     confidence: 91,
-    sampleCount: 18,
+    sampleCount: 18, 
     notes: 'Choppy water signifies sensory overload; flat glass water marks peak inner calm.'
   },
   {
     id: 'cosmos',
+    isSample: true,
     metaphor: 'Cosmic Starfields & Nebulae',
     primaryMeaning: 'Existential Perspective & Flow State',
     learnedAffinity: { focus: 70, serenity: 25, joy: 5 },
     confidence: 94,
-    sampleCount: 22,
+    sampleCount: 22, 
     notes: 'Chosen almost exclusively during late-night programming or meditative synthesis.'
   }
 ];
@@ -126,6 +130,7 @@ export const INITIAL_RESCUE_CAPSULES = [
   {
     id: 'capsule-1',
     title: 'A Letter from Your Sunniest Self',
+    isSample: true,
     authorMood: 'Radiant Joy',
     createdDate: '2026-11-04',
     triggerCondition: 'melancholy', // triggers on melancholy / high sadness
@@ -140,6 +145,7 @@ I believe in you with every fiber of my being.`
   {
     id: 'capsule-2',
     title: 'Grounding Wire for When Racing Thoughts Take Over',
+    isSample: true,
     authorMood: 'Deep Serenity',
     createdDate: '2026-11-08',
     triggerCondition: 'overwhelm', // triggers on overwhelm / anxiety
@@ -154,6 +160,7 @@ Be gentle with yourself. You are doing so much better than you give yourself cre
   {
     id: 'capsule-3',
     title: 'Permission Slip to Rest Without Guilt',
+    isSample: true,
     authorMood: 'Cosmic Resonance',
     createdDate: '2026-11-10',
     triggerCondition: 'fatigue', // triggers on fatigue
@@ -186,9 +193,14 @@ const generateSeedEntries = () => {
     const d = new Date(now.getTime() - i * 1.15 * 24 * 60 * 60 * 1000);
     const p = presets[presets.length - 1 - i];
     entries.push({
-      id: `entry-${Date.now() - i * 86400000}`,
+      id: `demo-entry-${Date.now() - i * 86400000}`,
       timestamp: d.toISOString(),
-      displayDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      displayDate: d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
       moodId: p.mood,
       archetypeTitle: p.meta.title,
       imageUrl: p.meta.imageUrl,
@@ -196,7 +208,8 @@ const generateSeedEntries = () => {
       arousal: p.aro,
       note: p.note,
       tags: p.meta.tags,
-      source: i % 3 === 0 ? 'Mood Mirror (Face Scan)' : 'Visual Metaphor Log'
+      source: 'Demo sample',
+      isSample: true
     });
   }
 
@@ -209,24 +222,63 @@ const STORAGE_KEYS = {
   LEXICON: 'moodverse_lexicon_v1'
 };
 
-export const getStoredEntries = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-    if (!raw) {
-      const initial = generateSeedEntries();
-      localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(initial));
-      return initial;
-    }
-    return JSON.parse(raw);
-  } catch (e) {
-    return generateSeedEntries();
-  }
+export const resetMoodverseData = () => {
+  Object.values(STORAGE_KEYS).forEach((key) => {
+    localStorage.removeItem(key);
+  });
+
+  return {
+    entries: getStoredEntries(),
+    capsules: getStoredCapsules(),
+    lexicon: getStoredLexicon()
+  };
 };
 
+    // Helper function: keeps newest entries first
+const sortNewestFirst = (entries) => {
+  return [...entries].sort((a, b) => {
+    const timeA = Date.parse(a.timestamp) || 0;
+    const timeB = Date.parse(b.timestamp) || 0;
+
+    return timeB - timeA;
+  });
+};
+
+  export const getStoredEntries = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
+      if (!raw) {
+        const initial = generateSeedEntries();
+        localStorage.setItem(
+          STORAGE_KEYS.ENTRIES,
+          JSON.stringify(initial)
+        );
+        return sortNewestFirst(initial);
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid mood entries format');
+      }
+      return sortNewestFirst(parsed);
+    } catch (error) {
+      console.error('Could not load mood entries:', error);
+      return [];
+    }
+  };
+   
 export const saveEntry = (newEntry) => {
   const current = getStoredEntries();
-  const updated = [newEntry, ...current];
-  localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(updated));
+  const updated = sortNewestFirst([
+    {
+      ...newEntry,
+      isSample: false
+    },
+    ...current
+  ]);
+  localStorage.setItem(
+    STORAGE_KEYS.ENTRIES,
+    JSON.stringify(updated)
+  );
   return updated;
 };
 
@@ -252,8 +304,14 @@ export const getStoredCapsules = () => {
 
 export const saveCapsule = (capsule) => {
   const current = getStoredCapsules();
-  const updated = [capsule, ...current];
-  localStorage.setItem(STORAGE_KEYS.CAPSULES, JSON.stringify(updated));
+  const updated = [
+    { ...capsule, isSample: false },
+    ...current
+  ];
+  localStorage.setItem(
+    STORAGE_KEYS.CAPSULES,
+    JSON.stringify(updated)
+  );
   return updated;
 };
 

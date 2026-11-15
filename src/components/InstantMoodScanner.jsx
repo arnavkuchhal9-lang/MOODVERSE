@@ -1,3 +1,4 @@
+//InstantMoodScanner.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, CameraOff, Sparkles, Heart, Smile, Frown, Gamepad2, HelpCircle, ArrowDown, Cpu, Zap, RefreshCw, Upload, Lock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { VisionBiometricsAnalyzer, MOOD_DEFINITIONS, checkDLBackendStatus, predictEmotionWithDLBackend } from '../utils/visionEngine';
